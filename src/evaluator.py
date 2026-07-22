@@ -79,7 +79,7 @@ class Evaluator(object):
                 q_vals = self.model(inputs)
             idx = torch.max(q_vals, -1)[1]
             greedy_steps = np.array(idx, dtype=np.int32).flatten()
-            return greedy_steps, q_vals.detach().cpu().numpy()
+            return greedy_steps, q_vals.squeeze(0).detach().cpu().numpy()
 
         obs_stack = self.env.reset(fixed_spawn)
         # Here obs have shape (agent, *image_size, frame_history)
