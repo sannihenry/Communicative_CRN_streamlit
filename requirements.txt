@@ -2,6 +2,7 @@ torch==2.8.0
 spaces
 pydantic<2.11
 huggingface_hub==0.25.2
+starlette<1.0.0
 numpy<2
 SimpleITK==2.3.1
 gym==0.17.3
