@@ -478,6 +478,10 @@ class MedicalPlayer(gym.Env):
         for i in range(self.agents):
             last_qvalues_history = self._qvalues_history[i][-4:]
             last_loc_history = self._loc_history[i][-4:]
+            # guard against the two history buffers being different lengths
+            min_len = min(len(last_qvalues_history), len(last_loc_history))
+            last_qvalues_history = last_qvalues_history[-min_len:]
+            last_loc_history = last_loc_history[-min_len:]
             best_qvalues = np.max(last_qvalues_history, axis=1)
             best_idx = best_qvalues.argmin()
             best_locations.append(last_loc_history[best_idx])
