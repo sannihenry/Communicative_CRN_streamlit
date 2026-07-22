@@ -85,7 +85,7 @@ class Network3D(nn.Module):
             x = self.maxpool2(x)
             x = self.conv3(x)
             x = self.prelu3(x)
-            x = x.view(-1, 512)
+            x = x.reshape(-1, 512)
             # Individual layers
             x = self.fc1[i](x)
             x = self.prelu4[i](x)
@@ -197,7 +197,7 @@ class CommNet(nn.Module):
             x = self.maxpool2(x)
             x = self.conv3(x)
             x = self.prelu3(x)
-            x = x.view(-1, 512)
+            x = x.reshape(-1, 512)
             input2.append(x)
         input2 = torch.stack(input2, dim=1)
          
