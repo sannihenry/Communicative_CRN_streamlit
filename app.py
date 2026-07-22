@@ -1,5 +1,5 @@
 """
-Gradio demo for the RL-Medical / physics-informed landmark detector.
+RL-Medical / physics-informed landmark detector.
 
 Loads the bundled single-agent DQN checkpoint (trained to find landmark #13 -
 the anterior commissure - in brain MRI) and runs it in inference-only
@@ -123,11 +123,6 @@ with gr.Blocks(title="RL-Medical Landmark Detector") as demo:
         single-agent DQN checkpoint will navigate to landmark **#13**
         (anterior commissure) and report the voxel coordinates it converges on.
 
-        This is a research demo of the model from
-        *Communicative Reinforcement Learning Agents for Landmark Detection
-        in Brain Images* (Leroy et al., 2020), adapted with a physics-informed
-        reward-shaping option. Only inference ("play" mode) runs here — no
-        training happens in this Space.
         """
     )
     with gr.Row():
