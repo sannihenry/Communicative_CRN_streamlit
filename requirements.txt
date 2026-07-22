@@ -12,4 +12,5 @@ scikit-image
 matplotlib
 tqdm
 tensorboard
+spaces
 

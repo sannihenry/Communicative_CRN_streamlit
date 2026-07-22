@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import spaces
 
 import gradio as gr
 import matplotlib
@@ -29,6 +30,7 @@ MODEL_PATH = os.path.join(SRC_DIR, "data", "models", "BrainMRI", "SingleAgent.pt
 LANDMARK_ID = 13  # what SingleAgent.pt was trained on
 
 
+@spaces.GPU
 def run_inference(nifti_path: str):
     """Runs `DQN.py --task play` on a single volume and returns the row
     printed by the logger with the agent's final (x, y, z) voxel position."""
