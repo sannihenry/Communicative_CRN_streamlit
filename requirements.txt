@@ -1,5 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.2+cpu
+torch==2.8.0
 gradio==4.44.1
 numpy<2
 SimpleITK==2.3.1
