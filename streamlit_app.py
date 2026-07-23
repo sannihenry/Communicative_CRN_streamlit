@@ -404,21 +404,21 @@ Steps : {trajectory[-1][0] if trajectory else 'N/A'}
 
     df = pd.DataFrame(results)
     successful = sum(
-    1 for r in results
-    if "Error" not in r
-)
+        1 for r in results
+        if "Error" not in r
+    )
 
-failed = len(results) - successful
+    failed = len(results) - successful
 
-top2.metric(
-    "Completed",
-    successful
-)
+    top2.metric(
+        "Completed",
+        successful
+    )
 
-top3.metric(
-    "Failed",
-    failed
-)
+    top3.metric(
+        "Failed",
+        failed
+    )
 
     st.success(
         f"Finished analysing {len(results)} image(s)."
@@ -437,57 +437,3 @@ top3.metric(
         file_name="Landmark_Report.csv",
         mime="text/csv"
     )
-
-# Display each patient's results
-with st.expander(
-    f"🧠 {uploaded_file.name}",
-    expanded=(idx == 0)
-):
-
-    left, right = st.columns([2, 1])
-
-    with left:
-
-        st.subheader("MRI Visualization")
-
-        st.pyplot(fig)
-
-        if gif_path:
-
-            st.subheader("RL Agent Search")
-
-            st.markdown(
-                gif_as_html(gif_path),
-                unsafe_allow_html=True
-            )
-
-    with right:
-
-        st.subheader("Detection Summary")
-
-        st.success("Landmark Successfully Detected")
-
-        c1, c2, c3 = st.columns(3)
-
-        c1.metric("X", x)
-        c2.metric("Y", y)
-        c3.metric("Z", z)
-
-        st.metric(
-            "Landmark",
-            f"#{LANDMARK_ID}"
-        )
-
-        st.divider()
-
-        st.subheader("Image Information")
-
-        st.code(info)
-
-        st.download_button(
-            "📄 Download Report",
-            report_text,
-            file_name=f"{uploaded_file.name}_report.txt",
-            mime="text/plain",
-            key=f"report_{idx}"
-        )
