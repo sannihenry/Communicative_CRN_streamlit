@@ -93,36 +93,51 @@ def run_inference(nifti_path: str):
         return int(round(x)), int(round(y)), int(round(z)), trajectory
 
 
-def is_dicom(path):
+def detect_format(path):
+    """
+    Detects the file type by reading the file contents,
+    not by checking the filename extension.
+    """
+
+    # ---------- Try DICOM ----------
     try:
         pydicom.dcmread(path, stop_before_pixels=True)
-        return True
+        return "dicom"
     except Exception:
-        return False
+        pass
 
-
-def is_nifti(path):
+    # ---------- Try NIfTI ----------
     try:
         nib.load(path)
-        return True
+        return "nifti"
     except Exception:
-        return False
+        pass
+
+    return None
 
 
-def prepare_image(uploaded_path):
-    """Returns a NIfTI file path for either NIfTI or DICOM input."""
-    path = uploaded_path
+def prepare_image(path):
 
-    if is_nifti(path):
+    fmt = detect_format(path)
+
+    if fmt == "nifti":
         return path
 
-    if is_dicom(path):
+    elif fmt == "dicom":
+
         image = sitk.ReadImage(path)
-        tmp = tempfile.NamedTemporaryFile(suffix=".nii.gz", delete=False)
+
+        tmp = tempfile.NamedTemporaryFile(
+            suffix=".nii.gz",
+            delete=False
+        )
+
         sitk.WriteImage(image, tmp.name)
+
         return tmp.name
 
-    raise ValueError("Unsupported medical image format.")
+    else:
+        raise ValueError("Unsupported medical image format.")
 
 
 def make_preview(nifti_path: str, x: int, y: int, z: int):
@@ -227,8 +242,8 @@ col_upload, col_results = st.columns([1, 2])
 with col_upload:
     st.subheader("📤 Upload")
     uploaded_file = st.file_uploader(
-        "Medical image", type=["nii", "gz", "dcm"], accept_multiple_files=False
-    )
+    "Upload MRI"
+)
     run_button = st.button("🚀 Start AI Analysis", type="primary", use_container_width=True)
     metadata_box = st.empty()
 
@@ -244,10 +259,10 @@ if run_button:
 
     with st.spinner("Running the agent... this can take a minute."):
         # Persist the upload to disk (matches what prepare_image expects)
-        suffix = os.path.splitext(uploaded_file.name)[1] or ".dcm"
-        tmp_upload = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-        tmp_upload.write(uploaded_file.getbuffer())
-        tmp_upload.close()
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        tmp.write(uploaded_file.getbuffer())
+        tmp.close()
+        image_path = prepare_image(tmp.name)
 
         try:
             image_path = prepare_image(tmp_upload.name)
