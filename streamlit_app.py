@@ -118,26 +118,29 @@ def detect_format(path):
 
 def prepare_image(path):
 
-    print("=" * 60)
-    print("Checking file:", path)
-
-    # Try DICOM
     try:
-        ds = pydicom.dcmread(path, stop_before_pixels=True)
-        print("✅ DICOM detected")
+        nib.load(path)
+        print("Detected NIfTI")
         return path
-    except Exception as e:
-        print("❌ Not DICOM")
-        print(e)
+    except Exception:
+        pass
 
-    # Try NIfTI
     try:
-        img = nib.load(path)
-        print("✅ NIfTI detected")
-        return path
-    except Exception as e:
-        print("❌ Not NIfTI")
-        print(e)
+        image = sitk.ReadImage(path)
+
+        tmp = tempfile.NamedTemporaryFile(
+            suffix=".nii.gz",
+            delete=False
+        )
+
+        sitk.WriteImage(image, tmp.name)
+
+        print("Detected DICOM")
+
+        return tmp.name
+
+    except Exception:
+        pass
 
     raise ValueError("Unsupported medical image format.")
 
@@ -260,13 +263,25 @@ if run_button:
 
     with st.spinner("Running the agent... this can take a minute."):
         # Persist the upload to disk (matches what prepare_image expects)
-        tmp = tempfile.NamedTemporaryFile(delete=False)
-        tmp.write(uploaded_file.getbuffer())
-        tmp.close()
-        image_path = prepare_image(tmp.name)
+        filename = uploaded_file.name.lower()
 
+if filename.endswith(".nii.gz"):
+    suffix = ".nii.gz"
+elif filename.endswith(".nii"):
+    suffix = ".nii"
+else:
+    suffix = ""
+
+tmp = tempfile.NamedTemporaryFile(
+    suffix=suffix,
+    delete=False
+)
+
+tmp.write(uploaded_file.getbuffer())
+tmp.close()
+        
         try:
-            image_path = prepare_image(tmp_upload.name)
+            image_path = prepare_image(tmp.name)
             x, y, z, trajectory = run_inference(image_path)
             fig = make_preview(image_path, x, y, z)
 
