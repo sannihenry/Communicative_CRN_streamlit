@@ -118,27 +118,28 @@ def detect_format(path):
 
 def prepare_image(path):
 
-    fmt = detect_format(path)
+    print("=" * 60)
+    print("Checking file:", path)
 
-    if fmt == "nifti":
+    # Try DICOM
+    try:
+        ds = pydicom.dcmread(path, stop_before_pixels=True)
+        print("✅ DICOM detected")
         return path
+    except Exception as e:
+        print("❌ Not DICOM")
+        print(e)
 
-    elif fmt == "dicom":
+    # Try NIfTI
+    try:
+        img = nib.load(path)
+        print("✅ NIfTI detected")
+        return path
+    except Exception as e:
+        print("❌ Not NIfTI")
+        print(e)
 
-        image = sitk.ReadImage(path)
-
-        tmp = tempfile.NamedTemporaryFile(
-            suffix=".nii.gz",
-            delete=False
-        )
-
-        sitk.WriteImage(image, tmp.name)
-
-        return tmp.name
-
-    else:
-        raise ValueError("Unsupported medical image format.")
-
+    raise ValueError("Unsupported medical image format.")
 
 def make_preview(nifti_path: str, x: int, y: int, z: int):
     image = sitk.ReadImage(nifti_path)
