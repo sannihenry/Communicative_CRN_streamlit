@@ -245,131 +245,244 @@ col_upload, col_results = st.columns([1, 2])
 
 with col_upload:
     st.subheader("📤 Upload")
-    uploaded_file = st.file_uploader(
-    "Upload MRI"
+    uploaded_files = st.file_uploader(
+    "Upload MRI Images",
+    accept_multiple_files=True,
+    help="You can upload one or many NIfTI/DICOM images."
 )
     run_button = st.button("🚀 Start AI Analysis", type="primary", use_container_width=True)
     metadata_box = st.empty()
 
-with col_results:
-    tab_viz, tab_path, tab_report, tab_download = st.tabs(
-        ["🖼 Visualization", "🎞 Agent Path", "📈 Analysis", "📄 Download"]
-    )
-
+# Image processing pipeline
 if run_button:
-    if uploaded_file is None:
-        st.error("Upload a .nii/.nii.gz or .dcm file first.")
+
+    if not uploaded_files:
+        st.error("Upload one or more MRI files first.")
         st.stop()
 
-    with st.spinner("Running the agent... this can take a minute."):
-        filename = uploaded_file.name.lower()
-        if filename.endswith(".nii.gz"):
-            suffix = ".nii.gz"
-        elif filename.endswith(".nii"):
-            suffix = ".nii"
-        else:
-            suffix = ""
-
-    tmp = tempfile.NamedTemporaryFile(
-        suffix=suffix,
-        delete=False
+    progress = st.progress(0)
+    status = st.empty()
+    top1, top2, top3 = st.columns(3)
+    top1.metric(
+    "Uploaded",
+    len(uploaded_files)
+    )
+    top2.metric(
+        "Completed",
+        0
+    )
+    
+    top3.metric(
+        "Failed",
+        0
     )
 
-    tmp.write(uploaded_file.getbuffer())
-    tmp.close()
+    successful = sum(
+    1 for r in results
+    if "Error" not in r
+)
 
-    try:
-        image_path = prepare_image(tmp.name)
+failed = len(results) - successful
 
-        x, y, z, trajectory = run_inference(image_path)
+top2.metric(
+    "Completed",
+    successful
+)
 
-        fig = make_preview(image_path, x, y, z)
+top3.metric(
+    "Failed",
+    failed
+)
 
-        gif_fd, gif_path = tempfile.mkstemp(suffix=".gif")
-        os.close(gif_fd)
-        gif_path = make_trajectory_gif(image_path, trajectory, gif_path)
+    results = []
 
-        report_text = f"""✅ Analysis Complete
+    with st.spinner("Running AI analysis..."):
 
-Detected Landmark : #{LANDMARK_ID}
+        for idx, uploaded_file in enumerate(uploaded_files):
 
-Voxel Coordinates
+            status.info(
+                f"Analyzing ({idx+1}/{len(uploaded_files)}): {uploaded_file.name}"
+            )
+
+            filename = uploaded_file.name.lower()
+
+            if filename.endswith(".nii.gz"):
+                suffix = ".nii.gz"
+            elif filename.endswith(".nii"):
+                suffix = ".nii"
+            else:
+                suffix = ""
+
+            tmp = tempfile.NamedTemporaryFile(
+                suffix=suffix,
+                delete=False
+            )
+
+            tmp.write(uploaded_file.getbuffer())
+            tmp.close()
+
+            try:
+
+                image_path = prepare_image(tmp.name)
+
+                x, y, z, trajectory = run_inference(image_path)
+
+                fig = make_preview(image_path, x, y, z)
+
+                gif_fd, gif_path = tempfile.mkstemp(suffix=".gif")
+                os.close(gif_fd)
+
+                gif_path = make_trajectory_gif(
+                    image_path,
+                    trajectory,
+                    gif_path
+                )
+
+                # ---------- Metadata ----------
+                try:
+                    img = nib.load(image_path)
+                    arr = img.get_fdata()
+
+                    info = (
+                        f"Shape : {arr.shape}\n"
+                        f"Data Type : {arr.dtype}\n"
+                        f"Minimum : {arr.min():.2f}\n"
+                        f"Maximum : {arr.max():.2f}"
+                    )
+
+                except Exception:
+
+                    info = "Metadata unavailable."
+
+                report_text = f"""
+Filename : {uploaded_file.name}
+
+Landmark : {LANDMARK_ID}
+
 X : {x}
 Y : {y}
 Z : {z}
 
-Steps taken to converge : {trajectory[-1][0] if trajectory else 'N/A'}
+Steps : {trajectory[-1][0] if trajectory else 'N/A'}
 """
 
-        try:
-            img = nib.load(image_path)
-            arr = img.get_fdata()
+                # Save result
+                results.append({
+                    "Filename": uploaded_file.name,
+                    "Landmark": LANDMARK_ID,
+                    "X": x,
+                    "Y": y,
+                    "Z": z,
+                    "Steps": trajectory[-1][0] if trajectory else "N/A"
+                })
 
-            info = (
-                f"Filename : {os.path.basename(image_path)}\n\n"
-                f"Shape : {arr.shape}\n\n"
-                f"Data Type : {arr.dtype}\n\n"
-                f"Dimensions : {len(arr.shape)}\n\n"
-                f"Minimum : {arr.min():.2f}\n\n"
-                f"Maximum : {arr.max():.2f}"
-            )
+                progress.progress((idx + 1) / len(uploaded_files))
 
-        except Exception:
-            info = "Unable to extract metadata."
+                # Display each result
+                with st.expander(f"📁 {uploaded_file.name}", expanded=False):
 
-        report_path = os.path.join(
-            tempfile.gettempdir(),
-            "analysis_report.txt"
-        )
+                    st.pyplot(fig)
 
-        with open(report_path, "w") as f:
-            f.write(report_text)
+                    if gif_path:
+                        st.markdown(
+                            gif_as_html(gif_path),
+                            unsafe_allow_html=True
+                        )
 
-    except Exception as e:
-        st.error(f"Analysis failed: {e}")
-        st.stop()
+                    st.text(report_text)
 
-    metadata_box.markdown("**📋 Image Information**\n\n" + info)
+                    st.text(info)
 
-    with tab_viz:
-        st.pyplot(fig)
+            except Exception as e:
 
-    with tab_path:
-        st.markdown(
-            "The agent starts at a random point and steps through the volume "
-            "toward the landmark. This animates its actual path, slice by "
-            "slice, as it converges. The yellow box is the region the "
-            "network is looking at around its current position."
-        )
-        if gif_path:
-            st.markdown(gif_as_html(gif_path), unsafe_allow_html=True)
-        else:
-            st.info("No trajectory captured for this run.")
+                results.append({
+                    "Filename": uploaded_file.name,
+                    "Landmark": "",
+                    "X": "",
+                    "Y": "",
+                    "Z": "",
+                    "Steps": "",
+                    "Error": str(e)
+                })
 
-    with tab_report:
-        st.text(report_text)
+                st.error(
+                    f"{uploaded_file.name} failed:\n{e}"
+                )
 
-    with tab_download:
-        with open(report_path, "rb") as f:
-            st.download_button(
-                "Download report", f, file_name="analysis_report.txt",
-                mime="text/plain", use_container_width=True,
-            )
+    # ---------------- Summary ----------------
 
-with st.expander("⚙ Technical Details"):
-    st.markdown(
-        """
-        **Model:** Communicative Deep Reinforcement Learning
-        **Framework:** PyTorch
-        **Input:** NIfTI / DICOM
-        **Output:** 3D Anatomical Landmark Coordinates
-        **Institution:** Research Prototype
-        """
+    import pandas as pd
+
+    df = pd.DataFrame(results)
+
+    st.success(
+        f"Finished analysing {len(results)} image(s)."
     )
 
-st.markdown(
-    "<div style='text-align:center; font-size:13px; color:gray;'>"
-    "Communicative Reinforcement Learning Landmark Detection • Powered by Streamlit"
-    "</div>",
-    unsafe_allow_html=True,
-)
+    st.dataframe(
+        df,
+        use_container_width=True
+    )
+
+    csv = df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        "📥 Download CSV Report",
+        csv,
+        file_name="Landmark_Report.csv",
+        mime="text/csv"
+    )
+
+# Display each patient's results
+with st.expander(
+    f"🧠 {uploaded_file.name}",
+    expanded=(idx == 0)
+):
+
+    left, right = st.columns([2, 1])
+
+    with left:
+
+        st.subheader("MRI Visualization")
+
+        st.pyplot(fig)
+
+        if gif_path:
+
+            st.subheader("RL Agent Search")
+
+            st.markdown(
+                gif_as_html(gif_path),
+                unsafe_allow_html=True
+            )
+
+    with right:
+
+        st.subheader("Detection Summary")
+
+        st.success("Landmark Successfully Detected")
+
+        c1, c2, c3 = st.columns(3)
+
+        c1.metric("X", x)
+        c2.metric("Y", y)
+        c3.metric("Z", z)
+
+        st.metric(
+            "Landmark",
+            f"#{LANDMARK_ID}"
+        )
+
+        st.divider()
+
+        st.subheader("Image Information")
+
+        st.code(info)
+
+        st.download_button(
+            "📄 Download Report",
+            report_text,
+            file_name=f"{uploaded_file.name}_report.txt",
+            mime="text/plain",
+            key=f"report_{idx}"
+        )
