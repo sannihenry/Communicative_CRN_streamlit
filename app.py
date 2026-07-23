@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import spaces
+import pydicom
 
 import gradio as gr
 import matplotlib
@@ -103,35 +104,272 @@ def make_preview(nifti_path: str, x: int, y: int, z: int):
     return fig
 
 
+def prepare_image(file):
+    """
+    Accepts:
+      • .nii
+      • .nii.gz
+      • .dcm
+
+    Returns a NIfTI filename because the RL model expects NIfTI input.
+    """
+
+    filename = file.name.lower()
+
+    if filename.endswith(".nii") or filename.endswith(".nii.gz"):
+        return file.name
+
+    if filename.endswith(".dcm"):
+        ds = pydicom.dcmread(file.name)
+
+        image = sitk.GetImageFromArray(ds.pixel_array)
+
+        tmp_dir = tempfile.mkdtemp()
+        nifti_path = os.path.join(tmp_dir, "converted.nii.gz")
+
+        sitk.WriteImage(image, nifti_path)
+
+        return nifti_path
+
+    raise gr.Error("Unsupported file format.")
 def detect(file):
+
     if file is None:
-        raise gr.Error("Upload a .nii or .nii.gz brain MRI volume first.")
-    x, y, z = run_inference(file.name)
-    fig = make_preview(file.name, x, y, z)
-    text = (
-        f"Predicted landmark {LANDMARK_ID} (anterior commissure) voxel position: "
-        f"x={x}, y={y}, z={z}"
-    )
+        raise gr.Error("Please upload a NIfTI or DICOM image.")
+
+    nifti_path = prepare_image(file)
+
+    x, y, z = run_inference(nifti_path)
+
+    fig = make_preview(nifti_path, x, y, z)
+
+    text = f"""
+✅ Analysis Complete
+
+Detected Landmark : #{LANDMARK_ID}
+
+Voxel Coordinates
+
+X : {x}
+
+Y : {y}
+
+Z : {z}
+"""
+
     return fig, text
 
+css = """
+.gradio-container{
+    max-width:1500px !important;
+}
 
-with gr.Blocks(title="RL-Medical Landmark Detector") as demo:
+h1{
+    text-align:center;
+}
+
+.section{
+    border-radius:15px;
+    padding:15px;
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+}
+
+.footer{
+    text-align:center;
+    font-size:13px;
+    color:gray;
+}
+"""
+
+with gr.Blocks(
+    css=css,
+    title="Communicative RL Medical Imaging"
+) as demo:
+
     gr.Markdown(
         """
-        # Anatomical Landmark Detection (C-MARL / RL-Medical)
-        Upload a brain MRI in NIfTI format (`.nii` or `.nii.gz`). The bundled
-        single-agent DQN checkpoint will navigate to landmark **#13**
-        (anterior commissure) and report the voxel coordinates it converges on.
+# 🧠 Communicative Reinforcement Learning Medical Imaging Platform
 
-        """
+### Physics-Informed Landmark Detection for Brain MRI
+
+Upload either
+
+- ✅ NIfTI (.nii / .nii.gz)
+
+or
+
+- ✅ DICOM (.dcm)
+
+The AI automatically detects anatomical landmarks.
+"""
     )
+
     with gr.Row():
-        inp = gr.File(label="Brain MRI (.nii / .nii.gz)", file_types=[".nii", ".gz"])
-    btn = gr.Button("Detect landmark", variant="primary")
-    out_plot = gr.Plot(label="Predicted location")
-    out_text = gr.Textbox(label="Result")
 
-    btn.click(fn=detect, inputs=inp, outputs=[out_plot, out_text])
+        with gr.Column(scale=1):
 
-if __name__ == "__main__":
-    demo.launch()
+            gr.Markdown("## 📤 Upload")
+
+            file_input = gr.File(
+                label="Medical Image",
+                file_types=[
+                    ".nii",
+                    ".nii.gz",
+                    ".dcm"
+                ]
+            )
+
+            detect_btn = gr.Button(
+                "🚀 Start AI Analysis",
+                variant="primary",
+                size="lg"
+            )
+
+            clear_btn = gr.ClearButton(
+                components=[file_input],
+                value="🗑 Clear"
+            )
+
+            gr.Markdown("---")
+
+            metadata = gr.Textbox(
+                label="📋 Image Information",
+                lines=10,
+                interactive=False
+            )
+
+        with gr.Column(scale=2):
+
+            with gr.Tabs():
+
+                with gr.Tab("🖼 Visualization"):
+
+                    output_image = gr.Plot(
+                        label="Landmark Detection"
+                    )
+
+                with gr.Tab("📈 Analysis"):
+
+                    report = gr.Textbox(
+                        label="AI Report",
+                        lines=18,
+                        interactive=False
+                    )
+
+                with gr.Tab("📄 Download"):
+
+                    report_file = gr.File(
+                        label="Download Generated Report"
+                    )
+
+    gr.Markdown("---")
+
+    with gr.Accordion("⚙ Technical Details", open=False):
+
+        gr.Markdown(
+            """
+### Model
+
+Communicative Deep Reinforcement Learning
+
+### Framework
+
+PyTorch
+
+### Input
+
+NIfTI / DICOM
+
+### Output
+
+3D Anatomical Landmark Coordinates
+
+### Institution
+
+Research Prototype
+"""
+        )
+
+    gr.Markdown(
+        """
+<div class='footer'>
+Communicative Reinforcement Learning Landmark Detection • Powered by Gradio
+</div>
+"""
+    )
+
+    def analyse(file):
+
+        fig, text = detect(file)
+
+        try:
+
+            image_path = prepare_image(file)
+
+            if image_path.endswith(".nii") or image_path.endswith(".nii.gz"):
+
+                img = nib.load(image_path)
+
+                arr = img.get_fdata()
+
+                info = f"""
+Filename : {os.path.basename(image_path)}
+
+Shape : {arr.shape}
+
+Data Type : {arr.dtype}
+
+Dimensions : {len(arr.shape)}
+
+Minimum : {arr.min():.2f}
+
+Maximum : {arr.max():.2f}
+"""
+
+            else:
+
+                ds = pydicom.dcmread(image_path)
+
+                info = f"""
+Patient : {getattr(ds,'PatientName','Unknown')}
+
+Modality : {getattr(ds,'Modality','Unknown')}
+
+Rows : {ds.Rows}
+
+Columns : {ds.Columns}
+
+Manufacturer :
+{getattr(ds,'Manufacturer','Unknown')}
+"""
+
+        except:
+
+            info = "Unable to extract metadata."
+
+        report_path = "analysis_report.txt"
+
+        with open(report_path,"w") as f:
+
+            f.write(text)
+
+        return (
+            fig,
+            text,
+            info,
+            report_path
+        )
+
+    detect_btn.click(
+        analyse,
+        inputs=file_input,
+        outputs=[
+            output_image,
+            report,
+            metadata,
+            report_file
+        ]
+    )
+
+demo.launch()

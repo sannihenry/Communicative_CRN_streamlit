@@ -79,7 +79,7 @@ class Evaluator(object):
                 q_vals = self.model(inputs)
             idx = torch.max(q_vals, -1)[1]
             greedy_steps = np.array(idx, dtype=np.int32).flatten()
-            return greedy_steps, q_vals.squeeze(0).detach().cpu().numpy()
+            return greedy_steps, q_vals.detach().cpu().numpy().squeeze(0)
 
         obs_stack = self.env.reset(fixed_spawn)
         # Here obs have shape (agent, *image_size, frame_history)
@@ -91,6 +91,14 @@ class Evaluator(object):
             acts, q_values = predict(obs_stack)
             obs_stack, r, isOver, info = self.env.step(acts, q_values, isOver)
             steps += 1
+            # Machine-parseable trajectory log line (agent 0 only). Consumed
+            # by app.py to render the agent's search path as an animation.
+            print("STEP_LOC: {} {} {} {}".format(
+                steps,
+                info.get('agent_xpos_0', 'NA'),
+                info.get('agent_ypos_0', 'NA'),
+                info.get('agent_zpos_0', 'NA'),
+            ))
             if start_dists is None:
                 start_dists = [
                     info.get('distError_' + str(i), "N/A") for i in range(self.agents)]
