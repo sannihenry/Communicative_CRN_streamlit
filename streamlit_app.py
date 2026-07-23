@@ -262,11 +262,9 @@ if run_button:
         st.stop()
 
     with st.spinner("Running the agent... this can take a minute."):
-
-    filename = uploaded_file.name.lower()
-
-    if filename.endswith(".nii.gz"):
-        suffix = ".nii.gz"
+        filename = uploaded_file.name.lower()
+        if filename.endswith(".nii.gz"):
+            suffix = ".nii.gz"
     elif filename.endswith(".nii"):
         suffix = ".nii"
     else:
