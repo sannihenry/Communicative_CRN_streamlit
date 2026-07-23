@@ -321,12 +321,6 @@ if run_button:
                     gif_path
                 )
 
-                try:
-                    os.remove(tmp.name)
-                    if gif_path:
-                        os.remove(gif_path)
-                except OSError:
-                    pass
 
                 # ---------- Metadata ----------
                 try:
