@@ -262,34 +262,36 @@ if run_button:
         st.stop()
 
     with st.spinner("Running the agent... this can take a minute."):
-        # Persist the upload to disk (matches what prepare_image expects)
-        filename = uploaded_file.name.lower()
 
-if filename.endswith(".nii.gz"):
-    suffix = ".nii.gz"
-elif filename.endswith(".nii"):
-    suffix = ".nii"
-else:
-    suffix = ""
+    filename = uploaded_file.name.lower()
 
-tmp = tempfile.NamedTemporaryFile(
-    suffix=suffix,
-    delete=False
-)
+    if filename.endswith(".nii.gz"):
+        suffix = ".nii.gz"
+    elif filename.endswith(".nii"):
+        suffix = ".nii"
+    else:
+        suffix = ""
 
-tmp.write(uploaded_file.getbuffer())
-tmp.close()
-        
-        try:
-            image_path = prepare_image(tmp.name)
-            x, y, z, trajectory = run_inference(image_path)
-            fig = make_preview(image_path, x, y, z)
+    tmp = tempfile.NamedTemporaryFile(
+        suffix=suffix,
+        delete=False
+    )
 
-            gif_fd, gif_path = tempfile.mkstemp(suffix=".gif")
-            os.close(gif_fd)
-            gif_path = make_trajectory_gif(image_path, trajectory, gif_path)
+    tmp.write(uploaded_file.getbuffer())
+    tmp.close()
 
-            report_text = f"""✅ Analysis Complete
+    try:
+        image_path = prepare_image(tmp.name)
+
+        x, y, z, trajectory = run_inference(image_path)
+
+        fig = make_preview(image_path, x, y, z)
+
+        gif_fd, gif_path = tempfile.mkstemp(suffix=".gif")
+        os.close(gif_fd)
+        gif_path = make_trajectory_gif(image_path, trajectory, gif_path)
+
+        report_text = f"""✅ Analysis Complete
 
 Detected Landmark : #{LANDMARK_ID}
 
@@ -301,38 +303,33 @@ Z : {z}
 Steps taken to converge : {trajectory[-1][0] if trajectory else 'N/A'}
 """
 
-            # Metadata
-            try:
-                if image_path.endswith(".nii") or image_path.endswith(".nii.gz"):
-                    img = nib.load(image_path)
-                    arr = img.get_fdata()
-                    info = (
-                        f"Filename : {os.path.basename(image_path)}\n\n"
-                        f"Shape : {arr.shape}\n\n"
-                        f"Data Type : {arr.dtype}\n\n"
-                        f"Dimensions : {len(arr.shape)}\n\n"
-                        f"Minimum : {arr.min():.2f}\n\n"
-                        f"Maximum : {arr.max():.2f}"
-                    )
-                else:
-                    ds = pydicom.dcmread(image_path)
-                    info = (
-                        f"Patient : {getattr(ds, 'PatientName', 'Unknown')}\n\n"
-                        f"Modality : {getattr(ds, 'Modality', 'Unknown')}\n\n"
-                        f"Rows : {ds.Rows}\n\n"
-                        f"Columns : {ds.Columns}\n\n"
-                        f"Manufacturer : {getattr(ds, 'Manufacturer', 'Unknown')}"
-                    )
-            except Exception:
-                info = "Unable to extract metadata."
+        try:
+            img = nib.load(image_path)
+            arr = img.get_fdata()
 
-            report_path = os.path.join(tempfile.gettempdir(), "analysis_report.txt")
-            with open(report_path, "w") as f:
-                f.write(report_text)
+            info = (
+                f"Filename : {os.path.basename(image_path)}\n\n"
+                f"Shape : {arr.shape}\n\n"
+                f"Data Type : {arr.dtype}\n\n"
+                f"Dimensions : {len(arr.shape)}\n\n"
+                f"Minimum : {arr.min():.2f}\n\n"
+                f"Maximum : {arr.max():.2f}"
+            )
 
-        except Exception as e:
-            st.error(f"Analysis failed: {e}")
-            st.stop()
+        except Exception:
+            info = "Unable to extract metadata."
+
+        report_path = os.path.join(
+            tempfile.gettempdir(),
+            "analysis_report.txt"
+        )
+
+        with open(report_path, "w") as f:
+            f.write(report_text)
+
+    except Exception as e:
+        st.error(f"Analysis failed: {e}")
+        st.stop()
 
     metadata_box.markdown("**📋 Image Information**\n\n" + info)
 
