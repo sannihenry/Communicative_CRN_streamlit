@@ -265,10 +265,10 @@ if run_button:
         filename = uploaded_file.name.lower()
         if filename.endswith(".nii.gz"):
             suffix = ".nii.gz"
-    elif filename.endswith(".nii"):
-        suffix = ".nii"
-    else:
-        suffix = ""
+        elif filename.endswith(".nii"):
+            suffix = ".nii"
+        else:
+            suffix = ""
 
     tmp = tempfile.NamedTemporaryFile(
         suffix=suffix,
