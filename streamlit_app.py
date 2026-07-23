@@ -17,6 +17,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import pandas as pd
 
 import matplotlib
 matplotlib.use("Agg")
@@ -241,7 +242,7 @@ st.markdown(
     "The AI automatically detects anatomical landmark #{}.".format(LANDMARK_ID)
 )
 
-col_upload, col_results = st.columns([1, 2])
+col_upload = st.container()
 
 with col_upload:
     st.subheader("📤 Upload")
@@ -251,7 +252,6 @@ with col_upload:
     help="You can upload one or many NIfTI/DICOM images."
 )
     run_button = st.button("🚀 Start AI Analysis", type="primary", use_container_width=True)
-    metadata_box = st.empty()
 
 # Image processing pipeline
 if run_button:
@@ -260,6 +260,7 @@ if run_button:
         st.error("Upload one or more MRI files first.")
         st.stop()
 
+    results = []
     progress = st.progress(0)
     status = st.empty()
     top1, top2, top3 = st.columns(3)
@@ -277,24 +278,6 @@ if run_button:
         0
     )
 
-    successful = sum(
-    1 for r in results
-    if "Error" not in r
-)
-
-failed = len(results) - successful
-
-top2.metric(
-    "Completed",
-    successful
-)
-
-top3.metric(
-    "Failed",
-    failed
-)
-
-    results = []
 
     with st.spinner("Running AI analysis..."):
 
@@ -337,6 +320,13 @@ top3.metric(
                     trajectory,
                     gif_path
                 )
+
+                try:
+                    os.remove(tmp.name)
+                    if gif_path:
+                        os.remove(gif_path)
+                except OSError:
+                    pass
 
                 # ---------- Metadata ----------
                 try:
@@ -391,7 +381,7 @@ Steps : {trajectory[-1][0] if trajectory else 'N/A'}
 
                     st.text(report_text)
 
-                    st.text(info)
+                    st.code(info)
 
             except Exception as e:
 
@@ -405,15 +395,30 @@ Steps : {trajectory[-1][0] if trajectory else 'N/A'}
                     "Error": str(e)
                 })
 
-                st.error(
-                    f"{uploaded_file.name} failed:\n{e}"
-                )
+                with st.expander(
+                    f"❌ {uploaded_file.name}"
+                ):
+                    st.exception(e)
 
     # ---------------- Summary ----------------
 
-    import pandas as pd
-
     df = pd.DataFrame(results)
+    successful = sum(
+    1 for r in results
+    if "Error" not in r
+)
+
+failed = len(results) - successful
+
+top2.metric(
+    "Completed",
+    successful
+)
+
+top3.metric(
+    "Failed",
+    failed
+)
 
     st.success(
         f"Finished analysing {len(results)} image(s)."
