@@ -56,7 +56,7 @@ MODEL_CONFIGS = {
         "landmarks": [13, 14, 0],
     },
     "PINNfor5agents" : {
-        "checkpoint": ""PINNfor5agents.pt",
+        "checkpoint": "PINNfor5agents.pt",
         "model_name": "PINN",
         "landmarks": [13, 14, 0, 1, 2],
     },
