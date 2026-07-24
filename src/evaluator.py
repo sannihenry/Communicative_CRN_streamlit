@@ -91,14 +91,17 @@ class Evaluator(object):
             acts, q_values = predict(obs_stack)
             obs_stack, r, isOver, info = self.env.step(acts, q_values, isOver)
             steps += 1
-            # Machine-parseable trajectory log line (agent 0 only). Consumed
-            # by app.py to render the agent's search path as an animation.
-            print("STEP_LOC: {} {} {} {}".format(
-                steps,
-                info.get('agent_xpos_0', 'NA'),
-                info.get('agent_ypos_0', 'NA'),
-                info.get('agent_zpos_0', 'NA'),
-            ))
+            # Machine-parseable trajectory log lines, one per agent. Consumed
+            # by streamlit_app.py to render each agent's search path as an
+            # animation. Format: STEP_LOC: <step> <agent_idx> <x> <y> <z>
+            for i in range(self.agents):
+                print("STEP_LOC: {} {} {} {} {}".format(
+                    steps,
+                    i,
+                    info.get(f'agent_xpos_{i}', 'NA'),
+                    info.get(f'agent_ypos_{i}', 'NA'),
+                    info.get(f'agent_zpos_{i}', 'NA'),
+                ))
             if start_dists is None:
                 start_dists = [
                     info.get('distError_' + str(i), "N/A") for i in range(self.agents)]
