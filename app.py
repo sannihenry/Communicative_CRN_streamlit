@@ -27,7 +27,7 @@ import SimpleITK as sitk
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.join(ROOT, "src")
-MODEL_PATH = os.path.join(SRC_DIR, "data", "models", "BrainMRI", "SingleAgent.pt")
+MODEL_PATH = os.path.join(SRC_DIR, "data", "models", "BrainMRI", "PINNfor1agent.pt", "PINNfor3agents.pt", "PINNfor5agents.pt", "PINNfor8agents.pt", "PINNfor3d8agents.pt")
 LANDMARK_ID = 13  # what SingleAgent.pt was trained on
 
 
