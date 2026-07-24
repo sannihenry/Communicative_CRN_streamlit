@@ -46,7 +46,7 @@ MAX_GIF_FRAMES = 60
 # load but predict against the wrong targets.
 MODEL_CONFIGS = {
     "PINNfor1agent — (anterior commissure)": {
-        "checkpoint": ""PINNfor1agent.pt",
+        "checkpoint": "PINNfor1agent.pt",
         "model_name": "PINN",
         "landmarks": [13],
     },
