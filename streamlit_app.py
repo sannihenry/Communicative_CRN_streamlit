@@ -401,7 +401,7 @@ if run_button:
 
                 fig = make_preview(image_path, agent_results)
 
-                gif_paths = {}
+                gif_html = {}
                 for i, res in enumerate(agent_results):
                     gif_fd, gif_path = tempfile.mkstemp(suffix=f".agent{i}.gif")
                     os.close(gif_fd)
@@ -413,12 +413,18 @@ if run_button:
                         image_path, trajectories.get(i, []), gif_path, color=color_hex
                     )
                     if saved:
-                        gif_paths[i] = saved
+                        # Read the gif into an inline HTML <img> tag now, while
+                        # the file still exists, then delete it immediately.
+                        # (It would otherwise be gone by the time this result
+                        # is rendered further down.)
+                        gif_html[i] = gif_as_html(saved)
+                        try:
+                            os.remove(saved)
+                        except OSError:
+                            pass
 
                 try:
                     os.remove(tmp.name)
-                    for p in gif_paths.values():
-                        os.remove(p)
                 except OSError:
                     pass
 
@@ -470,13 +476,13 @@ if run_button:
 
                     st.pyplot(fig)
 
-                    if gif_paths:
+                    if gif_html:
                         st.markdown("**Agent search paths**")
-                        gif_cols = st.columns(min(len(gif_paths), 4) or 1)
-                        for i, p in gif_paths.items():
+                        gif_cols = st.columns(min(len(gif_html), 4) or 1)
+                        for i, html in gif_html.items():
                             with gif_cols[i % len(gif_cols)]:
                                 st.caption(f"Agent {i} (landmark {landmarks[i]})")
-                                st.markdown(gif_as_html(p), unsafe_allow_html=True)
+                                st.markdown(html, unsafe_allow_html=True)
 
                     st.text(report_text)
 
