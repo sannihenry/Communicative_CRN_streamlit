@@ -55,17 +55,17 @@ MODEL_CONFIGS = {
         "model_name": "CommNet",
         "landmarks": [13, 14, 0],
     },
-    "PINNfor5agents : {
+    "PINNfor5agents" : {
         "checkpoint": "CommNet5agents.pt",
         "model_name": "CommNet",
         "landmarks": [13, 14, 0, 1, 2],
     },
-    "PINNfor8agents: {
+    "PINNfor8agents": {
         "checkpoint": "CommNet8agents.pt",
         "model_name": "CommNet",
         "landmarks": [13, 14, 0, 1, 2, 3, 4, 5],
     },
-    "PINNfor3D8agents: {
+    "PINNfor3D8agents": {
         "checkpoint": "Network3d8agents.pt",
         "model_name": "Network3d",
         "landmarks": [13, 14, 0, 1, 2, 3, 4, 5],
