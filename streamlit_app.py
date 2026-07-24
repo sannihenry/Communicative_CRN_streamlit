@@ -45,27 +45,27 @@ MAX_GIF_FRAMES = 60
 # landmarks, update the "landmarks" list below to match, or the model will
 # load but predict against the wrong targets.
 MODEL_CONFIGS = {
-    "Single agent — landmark 13 (anterior commissure)": {
+    "PINNfor1agent — (anterior commissure)": {
         "checkpoint": "SingleAgent.pt",
         "model_name": "Network3d",
         "landmarks": [13],
     },
-    "CommNet, 3 agents — landmarks 13, 14, 0 (unverified set)": {
+    "PINNfor3agents": {
         "checkpoint": "CommNet3agents.pt",
         "model_name": "CommNet",
         "landmarks": [13, 14, 0],
     },
-    "CommNet, 5 agents — landmarks 13, 14, 0, 1, 2": {
+    "PINNfor5agents : {
         "checkpoint": "CommNet5agents.pt",
         "model_name": "CommNet",
         "landmarks": [13, 14, 0, 1, 2],
     },
-    "CommNet, 8 agents — landmarks 13, 14, 0, 1, 2, 3, 4, 5": {
+    "PINNfor8agents: {
         "checkpoint": "CommNet8agents.pt",
         "model_name": "CommNet",
         "landmarks": [13, 14, 0, 1, 2, 3, 4, 5],
     },
-    "Network3d, 8 agents (no communication) — landmarks 13, 14, 0, 1, 2, 3, 4, 5": {
+    "PINNfor3D8agents: {
         "checkpoint": "Network3d8agents.pt",
         "model_name": "Network3d",
         "landmarks": [13, 14, 0, 1, 2, 3, 4, 5],
