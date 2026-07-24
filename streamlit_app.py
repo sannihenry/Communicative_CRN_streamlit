@@ -47,27 +47,27 @@ MAX_GIF_FRAMES = 60
 MODEL_CONFIGS = {
     "PINNfor1agent — (anterior commissure)": {
         "checkpoint": "PINNfor1agent.pt",
-        "model_name": "PINN",
+        "model_name": "Network3d",
         "landmarks": [13],
     },
     "PINNfor3agents": {
         "checkpoint": "PINNfor3agents.pt",
-        "model_name": "PINN",
+        "model_name": "CommNet",
         "landmarks": [13, 14, 0],
     },
     "PINNfor5agents" : {
         "checkpoint": "PINNfor5agents.pt",
-        "model_name": "PINN",
+        "model_name": "CommNet",
         "landmarks": [13, 14, 0, 1, 2],
     },
     "PINNfor8agents": {
         "checkpoint": "PINNfor8agents.pt",
-        "model_name": "PINN",
+        "model_name": "CommNet",
         "landmarks": [13, 14, 0, 1, 2, 3, 4, 5],
     },
     "PINNfor3D8agents": {
         "checkpoint": "PINNfor3d8agents.pt",
-        "model_name": "PINN",
+        "model_name": "Network3d",
         "landmarks": [13, 14, 0, 1, 2, 3, 4, 5],
     },
 }
